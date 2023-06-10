@@ -1,5 +1,5 @@
 import { handler } from "../lambda/getProductById";
-import bikes from "../data/bikes.json";
+import bikes from "../data/products.json";
 
 describe("getProductsById lambda function", () => {
   it("should return 404 if product is not found", async () => {

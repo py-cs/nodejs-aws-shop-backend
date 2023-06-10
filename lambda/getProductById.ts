@@ -1,5 +1,5 @@
 import { buildResponse } from "../utils/responseBuilder";
-import bikes from "../data/bikes.json";
+import bikes from "../data/products.json";
 
 export const handler = async (event: any) => {
   const { productId } = event.pathParameters;
