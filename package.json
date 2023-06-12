@@ -9,7 +9,9 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
-    "seed": "npx ts-node ./utils/seed"
+    "seed": "npx ts-node ./utils/seed",
+    "generate": "drizzle-kit generate:pg",
+    "migrate": "npx ts-node ./utils/migrate"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.117",
