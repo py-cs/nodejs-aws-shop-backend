@@ -1,7 +1,8 @@
 import { readFile } from "fs/promises";
 import { Product } from "../types";
 import path from "path";
-import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
+import { products, stocks } from "./schema";
+import { db } from "./migrate";
 
 const randomInRange = (min: number, max: number) => {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -10,36 +11,28 @@ const randomInRange = (min: number, max: number) => {
 const seed = async () => {
   const dataPath = path.resolve(__dirname, "..", "data");
 
-  const products = (await readFile(
+  const productsData = (await readFile(
     path.resolve(dataPath, "products.json"),
     "utf8"
   ).then(JSON.parse)) as Product[];
 
-  const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
+  const productsToAdd = productsData.map((p) => ({
+    title: p.title,
+    description: p.description,
+    price: p.price,
+  }));
 
-  products.forEach((p) => {
-    const productBatch = new PutItemCommand({
-      TableName: "products",
-      Item: {
-        id: { S: p.id },
-        title: { S: p.title },
-        description: { S: p.description },
-        price: { N: p.price.toString() },
-      },
-    });
+  const addedProducts = await db
+    .insert(products)
+    .values(productsToAdd)
+    .returning();
 
-    dynamoClient.send(productBatch);
+  const ids = addedProducts.map((p) => ({
+    product_id: p.id,
+    count: randomInRange(1, 10),
+  }));
 
-    const stockBatch = new PutItemCommand({
-      TableName: "stocks",
-      Item: {
-        product_id: { S: p.id },
-        count: { N: randomInRange(1, 10).toString() },
-      },
-    });
-
-    dynamoClient.send(stockBatch);
-  });
+  await db.insert(stocks).values(ids);
 };
 
 seed();
