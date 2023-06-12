@@ -6,7 +6,7 @@ describe("getProductsList lambda function", () => {
   it("should return a successful response", async () => {
     const expectedResponse = buildResponse(200, bikes);
 
-    const response = await handler({});
+    const response = await handler();
 
     expect(response).toEqual(expectedResponse);
   });

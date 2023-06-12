@@ -1,5 +1,5 @@
-import { readFile, writeFile } from "fs/promises";
-import { Product, Stock } from "../types";
+import { readFile } from "fs/promises";
+import { Product } from "../types";
 import path from "path";
 import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 
@@ -7,7 +7,7 @@ const randomInRange = (min: number, max: number) => {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 };
 
-const fillTables = async () => {
+const seed = async () => {
   const dataPath = path.resolve(__dirname, "..", "data");
 
   const products = (await readFile(
@@ -15,9 +15,7 @@ const fillTables = async () => {
     "utf8"
   ).then(JSON.parse)) as Product[];
 
-  const dynamoClient = new DynamoDBClient({
-    region: "eu-north-1",
-  });
+  const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
 
   products.forEach((p) => {
     const productBatch = new PutItemCommand({
@@ -44,4 +42,4 @@ const fillTables = async () => {
   });
 };
 
-fillTables();
+seed();
