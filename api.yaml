@@ -1,22 +1,22 @@
----
 openapi: 3.0.0
+servers:
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/py-cs/aws-nodejs-shop/1.0.0
+  - description: SwaggerHub API Auto Mocking
+    url: https://ejo2iext53.execute-api.eu-north-1.amazonaws.com/prod/
 info:
-  title: Bike Shop API
   description: Task 3 (First API with AWS API Gateway and AWS Lambda)
   version: 1.0.0
-servers:
-- url: https://virtserver.swaggerhub.com/py-cs/aws-nodejs-shop/1.0.0
-  description: SwaggerHub API Auto Mocking
-- url: https://8kyu0ljkgl.execute-api.eu-north-1.amazonaws.com/prod
-  description: SwaggerHub API Auto Mocking
+  title: Bike Shop API
 tags:
-- name: Products
-  description: Products API
+  - name: Products
+    description: Products API
 paths:
   /products:
     get:
       tags:
-      - Product
+        - Product
       summary: Get all products
       description: success
       operationId: getProductsList
@@ -28,33 +28,55 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Product'
+                  $ref: "#/components/schemas/Product"
+        "500":
+          description: Unexpected error
+    post:
+      tags:
+        - Product
+      summary: Creates a new product
+      description: Creates a new product
+      operationId: createProduct
+      requestBody:
+        description: Product to add
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewProduct"
+      responses:
+        "201":
+          description: Product response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "400":
+          description: Invalid product data
         "500":
           description: Unexpected error
   /products/{productId}:
     get:
       tags:
-      - Product
+        - Product
       summary: Get single product by id
       description: Get one product
       operationId: getProductById
       parameters:
-      - name: productId
-        in: path
-        description: product id
-        required: true
-        style: simple
-        explode: false
-        schema:
-          type: string
-          format: number
+        - name: productId
+          in: path
+          description: product id
+          required: true
+          schema:
+            type: string
+            format: number
       responses:
         "200":
           description: success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Product'
+                $ref: "#/components/schemas/Product"
         "404":
           description: Product with provided id not found
         "500":
@@ -63,19 +85,44 @@ components:
   schemas:
     Product:
       required:
-      - description
-      - id
-      - price
-      - stock
-      - title
+        - id
+        - title
+        - price
+        - description
+        - stock
       type: object
       properties:
         id:
-          type: number
+          type: string
+          format: uuid
           example: 1
         title:
           type: string
-          example: Mountain Master
+          example: "Mountain Master"
+        price:
+          type: number
+          example: 1299.99
+        description:
+          type: string
+          example: "High-performance mountain bike with a lightweight aluminum frame, 29-inch wheels, and a 12-speed drivetrain. Perfect for tackling challenging off-road trails."
+        stock:
+          type: number
+          example: 10
+    NewProduct:
+      required:
+        - title
+        - description
+        - price
+        - stock
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 1
+        title:
+          type: string
+          example: "Mountain Master"
         price:
           type: number
           example: 1299.99
