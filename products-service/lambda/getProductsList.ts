@@ -2,7 +2,7 @@ import { buildResponse } from "../utils/responseBuilder";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
 
-const dynamo = new DynamoDBClient({ region: process.env.PRODUCT_AWS_REGION });
+const dynamo = new DynamoDBClient({ region: process.env.PRODUCTS_AWS_REGION });
 const docClient = DynamoDBDocumentClient.from(dynamo);
 
 const scan = async (tableName: string) => {

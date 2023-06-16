@@ -3,7 +3,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand } from "@aws-sdk/lib-dynamodb";
 import { APIGatewayProxyEvent } from "aws-lambda";
 
-const dynamo = new DynamoDBClient({ region: process.env.AWS_REGION });
+const dynamo = new DynamoDBClient({ region: process.env.PRODUCTS_AWS_REGION });
 const docClient = DynamoDBDocumentClient.from(dynamo);
 
 const getItem = async (tableName: string, key: string, value: string) => {

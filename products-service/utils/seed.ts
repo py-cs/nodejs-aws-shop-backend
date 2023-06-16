@@ -2,6 +2,7 @@ import { readFile } from "fs/promises";
 import { Product } from "../types";
 import path from "path";
 import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
+import { env } from "../env";
 
 const randomInRange = (min: number, max: number) => {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -15,11 +16,11 @@ const seed = async () => {
     "utf8"
   ).then(JSON.parse)) as Product[];
 
-  const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
+  const dynamoClient = new DynamoDBClient({ region: env.PRODUCTS_AWS_REGION });
 
   products.forEach((p) => {
     const productBatch = new PutItemCommand({
-      TableName: "products",
+      TableName: env.DYNAMODB_PRODUCTS_TABLE,
       Item: {
         id: { S: p.id },
         title: { S: p.title },
@@ -31,7 +32,7 @@ const seed = async () => {
     dynamoClient.send(productBatch);
 
     const stockBatch = new PutItemCommand({
-      TableName: "stocks",
+      TableName: env.DYNAMODB_STOCKS_TABLE,
       Item: {
         product_id: { S: p.id },
         count: { N: randomInRange(1, 10).toString() },

@@ -2,34 +2,55 @@ import * as cdk from "aws-cdk-lib";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apiGateway from "aws-cdk-lib/aws-apigateway";
 import * as iam from "aws-cdk-lib/aws-iam";
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import {
   NodejsFunction,
   NodejsFunctionProps,
 } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
-import * as dotenv from "dotenv";
 import path from "path";
+import { env } from "../env";
 
-dotenv.config();
+const { PRODUCTS_AWS_REGION, DYNAMODB_PRODUCTS_TABLE, DYNAMODB_STOCKS_TABLE } =
+  env;
 
-const PRODUCT_AWS_REGION = process.env.PRODUCT_AWS_REGION!;
-const DYNAMODB_PRODUCTS_TABLE = process.env.DYNAMODB_PRODUCTS_TABLE!;
-const DYNAMODB_STOCKS_TABLE = process.env.DYNAMODB_STOCKS_TABLE!;
+const sharedTableProps: Partial<dynamodb.TableProps> = {
+  billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+  removalPolicy: cdk.RemovalPolicy.DESTROY,
+  tableClass: dynamodb.TableClass.STANDARD,
+};
+
+enum Lambdas {
+  getProductsList = "getProductsList",
+  getProductById = "getProductById",
+  createProduct = "createProduct",
+}
 
 const sharedLambdaProps: Partial<NodejsFunctionProps> = {
   runtime: lambda.Runtime.NODEJS_18_X,
   environment: {
-    PRODUCT_AWS_REGION,
+    PRODUCTS_AWS_REGION,
     DYNAMODB_PRODUCTS_TABLE,
     DYNAMODB_STOCKS_TABLE,
   },
+  bundling: { externalModules: ["aws-sdk", "zod", "crypto"] },
 };
 
-export class NodejsAwsShopBackendStack extends cdk.Stack {
+export class ProductsServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const { account } = cdk.Stack.of(this);
+    const productsTable = new dynamodb.Table(this, "products", {
+      ...sharedTableProps,
+      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
+      tableName: DYNAMODB_PRODUCTS_TABLE,
+    });
+
+    const stocksTable = new dynamodb.Table(this, "stocks", {
+      ...sharedTableProps,
+      partitionKey: { name: "product_id", type: dynamodb.AttributeType.STRING },
+      tableName: DYNAMODB_STOCKS_TABLE,
+    });
 
     const dynamoDbAccessRole = new iam.Role(this, "dynamoDBAccessRole", {
       assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
@@ -43,36 +64,26 @@ export class NodejsAwsShopBackendStack extends cdk.Stack {
                 "dynamodb:GetItem",
                 "dynamodb:PutItem",
               ],
-              resources: [
-                `arn:aws:dynamodb:${PRODUCT_AWS_REGION}:${account}:table/${DYNAMODB_PRODUCTS_TABLE}`,
-                `arn:aws:dynamodb:${PRODUCT_AWS_REGION}:${account}:table/${DYNAMODB_STOCKS_TABLE}`,
-              ],
+              resources: [productsTable.tableArn, stocksTable.tableArn],
             }),
           ],
         }),
       },
     });
 
-    const getProductsList = new NodejsFunction(this, "getProductsList", {
-      ...sharedLambdaProps,
-      functionName: "getProductsList",
-      entry: path.join(__dirname, "..", "lambda", "getProductsList.ts"),
-      role: dynamoDbAccessRole,
-    });
-
-    const getProductById = new NodejsFunction(this, "getProductById", {
-      ...sharedLambdaProps,
-      functionName: "getProductById",
-      entry: path.join(__dirname, "..", "lambda", "getProductById.ts"),
-      role: dynamoDbAccessRole,
-    });
-
-    const createProduct = new NodejsFunction(this, "createProduct", {
-      ...sharedLambdaProps,
-      functionName: "createProduct",
-      entry: path.join(__dirname, "..", "lambda", "createProduct.ts"),
-      role: dynamoDbAccessRole,
-    });
+    const [getProductsList, getProductById, createProduct] = [
+      Lambdas.getProductsList,
+      Lambdas.getProductById,
+      Lambdas.createProduct,
+    ].map(
+      (lambdaName) =>
+        new NodejsFunction(this, lambdaName + "1", {
+          ...sharedLambdaProps,
+          functionName: lambdaName + "1",
+          entry: path.join(__dirname, "..", "lambda", `${lambdaName}.ts`),
+          role: dynamoDbAccessRole,
+        })
+    );
 
     const api = new apiGateway.RestApi(this, "ProductsApiGateway", {
       restApiName: "Products API",

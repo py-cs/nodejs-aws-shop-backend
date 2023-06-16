@@ -7,8 +7,9 @@ import {
 import { APIGatewayProxyEvent } from "aws-lambda";
 import { productSchema } from "../utils/productSchema";
 import { randomUUID } from "crypto";
+import { z } from "zod";
 
-const dynamo = new DynamoDBClient({ region: process.env.AWS_REGION });
+const dynamo = new DynamoDBClient({ region: process.env.PRODUCTS_AWS_REGION });
 const docClient = DynamoDBDocumentClient.from(dynamo);
 
 export const handler = async (event: APIGatewayProxyEvent) => {
@@ -20,10 +21,10 @@ export const handler = async (event: APIGatewayProxyEvent) => {
     JSON.stringify(createProductDTO)
   );
 
-  let productWithStock;
+  let productWithStock: z.infer<typeof productSchema>;
 
   try {
-    productWithStock = await productSchema.validate(createProductDTO);
+    productWithStock = productSchema.parse(createProductDTO);
   } catch (error: unknown) {
     return buildResponse(400, { message: "Invalid product" });
   }
