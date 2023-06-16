@@ -9,6 +9,7 @@ import {
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import { env } from "../env";
 import path = require("path");
+import * as apiGateway from "aws-cdk-lib/aws-apigateway";
 
 enum Lambdas {
   importFileParser = "importFileParser",
@@ -35,6 +36,14 @@ export class ImportServiceStack extends cdk.Stack {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
+      cors: [
+        {
+          allowedOrigins: ["*"],
+          allowedMethods: [s3.HttpMethods.GET, s3.HttpMethods.PUT],
+          allowedHeaders: ["*"],
+          exposedHeaders: [],
+        },
+      ],
     });
 
     const [importProductsFile, importFileParser] = [
@@ -49,22 +58,30 @@ export class ImportServiceStack extends cdk.Stack {
         })
     );
 
-    const lambdaUrl = importProductsFile.addFunctionUrl({
-      cors: {
-        allowedMethods: [cdk.aws_lambda.HttpMethod.ALL],
-        allowedOrigins: ["*"],
-        allowedHeaders: ["*"],
+    const api = new apiGateway.RestApi(this, "ImportApiGateway", {
+      restApiName: "Import API",
+      defaultCorsPreflightOptions: {
+        allowOrigins: apiGateway.Cors.ALL_ORIGINS,
+        allowMethods: apiGateway.Cors.ALL_METHODS,
+        allowHeaders: ["*"],
+        allowCredentials: true,
       },
-      authType: cdk.aws_lambda.FunctionUrlAuthType.NONE,
     });
 
+    api.root
+      .addResource("import")
+      .addMethod("GET", new apiGateway.LambdaIntegration(importProductsFile), {
+        requestParameters: { "method.request.querystring.name": true },
+      });
+
     bucket.grantReadWrite(importProductsFile);
+    bucket.grantReadWrite(importFileParser);
+    bucket.grantDelete(importFileParser);
 
     bucket.addEventNotification(
       s3.EventType.OBJECT_CREATED,
-      new s3notificaitions.LambdaDestination(importFileParser)
+      new s3notificaitions.LambdaDestination(importFileParser),
+      { prefix: "uploaded/" }
     );
-
-    new cdk.CfnOutput(this, "importProductsFileUrl", { value: lambdaUrl.url });
   }
 }
