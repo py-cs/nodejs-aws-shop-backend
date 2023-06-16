@@ -49,12 +49,9 @@ export class ImportServiceStack extends cdk.Stack {
         })
     );
 
-    importProductsFile.addFunctionUrl({
+    const lambdaUrl = importProductsFile.addFunctionUrl({
       cors: {
-        allowedMethods: [
-          cdk.aws_lambda.HttpMethod.GET,
-          cdk.aws_lambda.HttpMethod.OPTIONS,
-        ],
+        allowedMethods: [cdk.aws_lambda.HttpMethod.ALL],
         allowedOrigins: ["*"],
         allowedHeaders: ["*"],
       },
@@ -67,5 +64,7 @@ export class ImportServiceStack extends cdk.Stack {
       s3.EventType.OBJECT_CREATED,
       new s3notificaitions.LambdaDestination(importFileParser)
     );
+
+    new cdk.CfnOutput(this, "importProductsFileUrl", { value: lambdaUrl.url });
   }
 }
