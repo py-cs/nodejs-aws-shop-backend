@@ -1,0 +1,62 @@
+[
+  {
+    "id": "e234da3a-17cb-4cad-8410-37d78551b5ab",
+    "title": "Mountain Master",
+    "description": "High-performance mountain bike with a lightweight aluminum frame, 29-inch wheels, and a 12-speed drivetrain. Perfect for tackling challenging off-road trails.",
+    "price": 1299.99
+  },
+  {
+    "id": "221dab79-5cde-417b-8170-4bcc8c8fb0fe",
+    "title": "City Cruiser",
+    "description": "Stylish and comfortable city bike designed for urban commuting. Features a step-through frame, fenders, and a rear rack for carrying your belongings.",
+    "price": 599.99
+  },
+  {
+    "id": "e7dde50c-938b-417a-bf96-491d6dbe0d01",
+    "title": "Road Racer",
+    "description": "Carbon fiber road bike built for speed and efficiency. Equipped with a Shimano 105 groupset, aerodynamic frame, and lightweight wheels.",
+    "price": 1999.99
+  },
+  {
+    "id": "f2073d46-b6f1-435a-9bc6-13142e72bfed",
+    "title": "Kids' Bike",
+    "description": "A fun and durable bike specially designed for children. Comes with training wheels and vibrant colors.",
+    "price": 249.99
+  },
+  {
+    "id": "716ba77d-3352-40a8-b108-3657a49dcf99",
+    "title": "Electric Commuter",
+    "description": "An electric bike perfect for daily commuting. Features a powerful motor, long-lasting battery, and integrated lights.",
+    "price": 1499.99
+  },
+  {
+    "id": "cc69ce98-1b77-4fd2-ab81-f4c53521a0e1",
+    "title": "Gravel Grinder",
+    "description": "Versatile bike built for gravel riding. Wide tires, disc brakes, and a sturdy frame ensure a smooth and stable ride on various terrains.",
+    "price": 899.99
+  },
+  {
+    "id": "a9620a09-eb54-44a7-b5bc-1bbc260fce64",
+    "title": "Hybrid Explorer",
+    "description": "A hybrid bike that combines the best of road and mountain bikes. Ideal for both on-road and light off-road adventures.",
+    "price": 799.99
+  },
+  {
+    "id": "eef4275a-7dd1-435b-a8ca-625e16be1b5c",
+    "title": "Folding Commuter",
+    "description": "A compact and foldable bike for easy storage and transportation. Perfect for city dwellers with limited space.",
+    "price": 699.99
+  },
+  {
+    "id": "92d85db3-fcca-48e6-9aad-85c3b64f3ae6",
+    "title": "BMX Freestyle",
+    "description": "A trick bike designed for BMX freestyle riders. Built to withstand jumps, stunts, and grinds at the skate park.",
+    "price": 349.99
+  },
+  {
+    "id": "72f876a4-3904-4827-9506-4fd5cead7927",
+    "title": "Touring Adventure",
+    "description": "A touring bike for long-distance adventures. Comes with pannier racks, comfortable saddle, and durable components.",
+    "price": 1799.99
+  }
+]
