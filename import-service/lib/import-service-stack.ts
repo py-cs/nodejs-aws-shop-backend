@@ -25,7 +25,14 @@ const sharedLambdaProps: Partial<NodejsFunctionProps> = {
     IMPORT_AWS_REGION,
     BUCKET_NAME,
   },
-  bundling: { externalModules: ["aws-sdk"] },
+  bundling: {
+    externalModules: [
+      "aws-lambda",
+      "stream",
+      "@aws-sdk/client-s3",
+      "@aws-sdk/s3-request-presigner",
+    ],
+  },
 };
 
 export class ImportServiceStack extends cdk.Stack {
