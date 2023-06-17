@@ -10,6 +10,7 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import { env } from "../env";
 import path = require("path");
 import * as apiGateway from "aws-cdk-lib/aws-apigateway";
+import { Folders } from "../utils/constants";
 
 enum Lambdas {
   importFileParser = "importFileParser",
@@ -81,7 +82,7 @@ export class ImportServiceStack extends cdk.Stack {
     bucket.addEventNotification(
       s3.EventType.OBJECT_CREATED,
       new s3notificaitions.LambdaDestination(importFileParser),
-      { prefix: "uploaded/" }
+      { prefix: Folders.UPLOADED }
     );
   }
 }

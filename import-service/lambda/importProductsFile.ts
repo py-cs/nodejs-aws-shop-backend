@@ -2,6 +2,7 @@ import { buildResponse } from "../utils/responseBuilder";
 import { APIGatewayProxyEvent } from "aws-lambda";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { Folders } from "../utils/constants";
 
 export const handler = async (event: APIGatewayProxyEvent) => {
   const fileName = event.queryStringParameters?.name;
@@ -14,7 +15,7 @@ export const handler = async (event: APIGatewayProxyEvent) => {
 
   const client = new S3Client({ region: process.env.IMPORT_AWS_REGION });
   const bucketName = process.env.BUCKET_NAME;
-  const key = `uploaded/${fileName}`;
+  const key = `${Folders.UPLOADED}/${fileName}`;
 
   const putCommand = new PutObjectCommand({
     Bucket: bucketName,

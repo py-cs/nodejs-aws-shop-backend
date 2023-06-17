@@ -4,11 +4,11 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   S3Client,
-  _Object,
 } from "@aws-sdk/client-s3";
 import { PassThrough, Readable } from "stream";
 import { S3Event } from "aws-lambda";
 import csv from "csv-parser";
+import { Folders } from "../utils/constants";
 
 export const handler = async (event: S3Event) => {
   try {
@@ -42,7 +42,7 @@ export const handler = async (event: S3Event) => {
             new CopyObjectCommand({
               Bucket: bucketName,
               CopySource: `${bucketName}/${fileName}`,
-              Key: fileName.replace("uploaded", "parsed"),
+              Key: fileName.replace(Folders.UPLOADED, Folders.PARSED),
             })
           );
           console.log("Copied file to /parsed");
