@@ -7,8 +7,11 @@ import {
 } from "@aws-sdk/client-s3";
 import { PassThrough, Readable } from "stream";
 import { S3Event } from "aws-lambda";
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import csv from "csv-parser";
 import { Folders } from "../utils/constants";
+
+const sqs = new SQSClient({ region: process.env.IMPORT_AWS_REGION });
 
 export const handler = async (event: S3Event) => {
   try {
@@ -34,7 +37,20 @@ export const handler = async (event: S3Event) => {
       body
         .pipe(new PassThrough())
         .pipe(csv())
-        .on("data", console.log)
+        .on("data", (record) => {
+          const message = JSON.stringify({
+            ...record,
+            price: Number(record.price),
+            count: Number(record.count),
+          });
+
+          sqs.send(
+            new SendMessageCommand({
+              QueueUrl: process.env.IMPORT_QUEUE_URL,
+              MessageBody: message,
+            })
+          );
+        })
         .on("end", async () => {
           console.log("Finished reading");
 

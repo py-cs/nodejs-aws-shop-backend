@@ -2,6 +2,7 @@ import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as s3notificaitions from "aws-cdk-lib/aws-s3-notifications";
+import * as sqs from "aws-cdk-lib/aws-sqs";
 import {
   NodejsFunction,
   NodejsFunctionProps,
@@ -39,6 +40,14 @@ export class ImportServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
+    const importQueueArn = cdk.Fn.importValue("ImportQueueArn");
+
+    const importQueue = sqs.Queue.fromQueueArn(
+      this,
+      "ImportQueue",
+      importQueueArn
+    );
+
     const bucket = new s3.Bucket(this, "ImportBucket", {
       bucketName: BUCKET_NAME,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
@@ -54,17 +63,41 @@ export class ImportServiceStack extends cdk.Stack {
       ],
     });
 
-    const [importProductsFile, importFileParser] = [
+    const importProductsFile = new NodejsFunction(
+      this,
       Lambdas.importProductsFile,
-      Lambdas.importFileParser,
-    ].map(
-      (lambdaName) =>
-        new NodejsFunction(this, lambdaName, {
-          ...sharedLambdaProps,
-          functionName: lambdaName,
-          entry: path.join(__dirname, "..", "lambda", `${lambdaName}.ts`),
-        })
+      {
+        ...sharedLambdaProps,
+        functionName: Lambdas.importProductsFile,
+        entry: path.join(
+          __dirname,
+          "..",
+          "lambda",
+          `${Lambdas.importProductsFile}.ts`
+        ),
+      }
     );
+
+    const importFileParser = new NodejsFunction(
+      this,
+      Lambdas.importFileParser,
+      {
+        ...sharedLambdaProps,
+        environment: {
+          ...sharedLambdaProps.environment,
+          IMPORT_QUEUE_URL: importQueue.queueUrl,
+        },
+        functionName: Lambdas.importFileParser,
+        entry: path.join(
+          __dirname,
+          "..",
+          "lambda",
+          `${Lambdas.importFileParser}.ts`
+        ),
+      }
+    );
+
+    importQueue.grantSendMessages(importFileParser);
 
     const api = new apiGateway.RestApi(this, "ImportApiGateway", {
       restApiName: "Import API",
