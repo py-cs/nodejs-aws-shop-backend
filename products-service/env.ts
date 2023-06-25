@@ -13,6 +13,8 @@ export const env = createEnv({
       .string()
       .transform((s) => parseInt(s, 10))
       .pipe(z.number()),
+    EMAIL: z.string().email(),
+    LOW_STOCK_EMAIL: z.string().email(),
   },
   runtimeEnv: process.env,
 });

@@ -4,6 +4,7 @@ import * as apiGateway from "aws-cdk-lib/aws-apigateway";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as sqs from "aws-cdk-lib/aws-sqs";
+import * as sns from "aws-cdk-lib/aws-sns";
 import {
   NodejsFunction,
   NodejsFunctionProps,
@@ -135,6 +136,32 @@ export class ProductsServiceStack extends cdk.Stack {
     });
 
     catalogBatchProcess.addEventSource(batchEventSource);
+
+    const createProductsTopic = new sns.Topic(this, "ImportProductTopic", {
+      topicName: "import-product-topic",
+    });
+
+    createProductsTopic.grantPublish(catalogBatchProcess);
+
+    catalogBatchProcess.addEnvironment(
+      "IMPORT_PRODUCT_TOPIC_ARN",
+      createProductsTopic.topicArn
+    );
+
+    new sns.Subscription(this, "ImportProductTopicSubscription", {
+      topic: createProductsTopic,
+      protocol: sns.SubscriptionProtocol.EMAIL,
+      endpoint: env.EMAIL,
+    });
+
+    new sns.Subscription(this, "LowStockSubscription", {
+      topic: createProductsTopic,
+      protocol: sns.SubscriptionProtocol.EMAIL,
+      endpoint: env.LOW_STOCK_EMAIL,
+      filterPolicy: {
+        count: sns.SubscriptionFilter.numericFilter({ lessThan: 5 }),
+      },
+    });
 
     new cdk.CfnOutput(this, "ImportQueueArnOutput", {
       value: importQueue.queueArn,
