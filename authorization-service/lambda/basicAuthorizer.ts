@@ -1,6 +1,11 @@
-export const handler = async (event: any, _ctx: unknown, cb: Function) => {
-  if (event.type !== "TOKEN") return cb(null, "Unauthorized");
+import { APIGatewayTokenAuthorizerEvent, Callback, Context } from "aws-lambda";
 
+export const handler = async (
+  event: APIGatewayTokenAuthorizerEvent,
+  _ctx: Context,
+  cb: Callback
+) => {
+  console.log(_ctx);
   try {
     const { authorizationToken } = event;
     const [, token] = authorizationToken.split(" ");
@@ -19,7 +24,6 @@ export const handler = async (event: any, _ctx: unknown, cb: Function) => {
     return cb(null, policy);
   } catch (error: unknown) {
     return cb(
-      null,
       `Unauthorized: ${
         error instanceof Error ? error.message : "unknown error"
       }`

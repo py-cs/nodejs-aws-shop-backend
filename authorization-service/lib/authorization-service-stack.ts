@@ -14,6 +14,7 @@ export class AuthorizationServiceStack extends cdk.Stack {
     super(scope, id, props);
 
     const authorizerLambda = new NodejsFunction(this, AUTHORIZER_LAMBDA, {
+      functionName: AUTHORIZER_LAMBDA,
       entry: path.join(__dirname, "..", "lambda", `${AUTHORIZER_LAMBDA}.ts`),
       runtime: lambda.Runtime.NODEJS_18_X,
       environment: {
