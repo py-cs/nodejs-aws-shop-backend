@@ -5,7 +5,6 @@ export const handler = async (
   _ctx: Context,
   cb: Callback
 ) => {
-  console.log(_ctx);
   try {
     const { authorizationToken } = event;
     const [, token] = authorizationToken.split(" ");
@@ -14,7 +13,9 @@ export const handler = async (
       .toString()
       .split(":");
 
-    const storedUserPassword = process.env[username];
+    const sanitizedUsername = username.replace(/-/g, "_");
+
+    const storedUserPassword = process.env[sanitizedUsername];
 
     const effect =
       !storedUserPassword || storedUserPassword !== password ? "Deny" : "Allow";

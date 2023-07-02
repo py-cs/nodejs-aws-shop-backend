@@ -157,6 +157,21 @@ export class ImportServiceStack extends cdk.Stack {
         authorizer,
       });
 
+    const responseHeaders = {
+      "Access-Control-Allow-Origin": "'*'",
+      "Access-Control-Allow-Headers": "'*'",
+      "Access-Control-Allow-Methods": "'GET'",
+    };
+
+    api.addGatewayResponse("GatewayResponseUNAUTHORIZED", {
+      type: apiGateway.ResponseType.UNAUTHORIZED,
+      responseHeaders,
+    });
+    api.addGatewayResponse("GatewayResponseACCESS_DENIED", {
+      type: apiGateway.ResponseType.ACCESS_DENIED,
+      responseHeaders,
+    });
+
     bucket.grantReadWrite(importProductsFile);
     bucket.grantReadWrite(importFileParser);
     bucket.grantDelete(importFileParser);
