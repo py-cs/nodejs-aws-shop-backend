@@ -7,13 +7,43 @@ import {
 import { APIGatewayProxyEvent } from "aws-lambda";
 import { productSchema } from "../utils/productSchema";
 import { randomUUID } from "crypto";
-import { z } from "zod";
 
 const dynamo = new DynamoDBClient({ region: process.env.PRODUCTS_AWS_REGION });
 const docClient = DynamoDBDocumentClient.from(dynamo);
 
+export const createProduct = async (createProductDTO: unknown) => {
+  const productWithStock = productSchema.parse(createProductDTO);
+
+  const { count, ...productData } = productWithStock;
+  const id = randomUUID();
+  const product = { ...productData, id };
+  const stock = { product_id: id, count };
+
+  await docClient.send(
+    new TransactWriteCommand({
+      TransactItems: [
+        {
+          Put: {
+            TableName: process.env.DYNAMODB_PRODUCTS_TABLE!,
+            Item: product,
+          },
+        },
+        {
+          Put: {
+            TableName: process.env.DYNAMODB_STOCKS_TABLE!,
+            Item: stock,
+          },
+        },
+      ],
+    })
+  );
+  return { ...productWithStock, id };
+};
+
 export const handler = async (event: APIGatewayProxyEvent) => {
-  if (!event.body) return buildResponse(401, { message: "Invalid product" });
+  if (!event.body || !productSchema.safeParse(event.body).success)
+    return buildResponse(401, { message: "Invalid product" });
+
   const createProductDTO = JSON.parse(event.body);
 
   console.log(
@@ -21,40 +51,9 @@ export const handler = async (event: APIGatewayProxyEvent) => {
     JSON.stringify(createProductDTO)
   );
 
-  let productWithStock: z.infer<typeof productSchema>;
-
   try {
-    productWithStock = productSchema.parse(createProductDTO);
-  } catch (error: unknown) {
-    return buildResponse(400, { message: "Invalid product" });
-  }
-
-  const { count, ...productData } = productWithStock;
-  const id = randomUUID();
-  const product = { ...productData, id };
-  const stock = { product_id: id, count };
-
-  try {
-    await docClient.send(
-      new TransactWriteCommand({
-        TransactItems: [
-          {
-            Put: {
-              TableName: process.env.DYNAMODB_PRODUCTS_TABLE!,
-              Item: product,
-            },
-          },
-          {
-            Put: {
-              TableName: process.env.DYNAMODB_STOCKS_TABLE!,
-              Item: stock,
-            },
-          },
-        ],
-      })
-    );
-
-    return buildResponse(201, { ...productWithStock, id });
+    const response = createProduct(createProductDTO);
+    return buildResponse(201, response);
   } catch (error: unknown) {
     return buildResponse(500, {
       message: error instanceof Error ? error.message : "Unexpected error",

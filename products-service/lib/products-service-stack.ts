@@ -3,6 +3,8 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apiGateway from "aws-cdk-lib/aws-apigateway";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as sqs from "aws-cdk-lib/aws-sqs";
+import * as sns from "aws-cdk-lib/aws-sns";
 import {
   NodejsFunction,
   NodejsFunctionProps,
@@ -10,6 +12,7 @@ import {
 import { Construct } from "constructs";
 import path from "path";
 import { env } from "../env";
+import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 
 const { PRODUCTS_AWS_REGION, DYNAMODB_PRODUCTS_TABLE, DYNAMODB_STOCKS_TABLE } =
   env;
@@ -24,6 +27,7 @@ enum Lambdas {
   getProductsList = "getProductsList",
   getProductById = "getProductById",
   createProduct = "createProduct",
+  catalogBatchProcess = "catalogBatchProcess",
 }
 
 const sharedLambdaProps: Partial<NodejsFunctionProps> = {
@@ -33,7 +37,7 @@ const sharedLambdaProps: Partial<NodejsFunctionProps> = {
     DYNAMODB_PRODUCTS_TABLE,
     DYNAMODB_STOCKS_TABLE,
   },
-  bundling: { externalModules: ["aws-sdk", "zod", "crypto"] },
+  bundling: { externalModules: ["aws-sdk", "crypto", "aws-lambda"] },
 };
 
 export class ProductsServiceStack extends cdk.Stack {
@@ -52,7 +56,7 @@ export class ProductsServiceStack extends cdk.Stack {
       tableName: DYNAMODB_STOCKS_TABLE,
     });
 
-    const dynamoDbAccessRole = new iam.Role(this, "dynamoDBAccessRole", {
+    const lambdaRole = new iam.Role(this, "LambdaRole", {
       assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
       inlinePolicies: {
         dynamoDBAccessPolicy: new iam.PolicyDocument({
@@ -71,17 +75,29 @@ export class ProductsServiceStack extends cdk.Stack {
       },
     });
 
-    const [getProductsList, getProductById, createProduct] = [
+    lambdaRole.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName(
+        "service-role/AWSLambdaBasicExecutionRole"
+      )
+    );
+
+    const [
+      getProductsList,
+      getProductById,
+      createProduct,
+      catalogBatchProcess,
+    ] = [
       Lambdas.getProductsList,
       Lambdas.getProductById,
       Lambdas.createProduct,
+      Lambdas.catalogBatchProcess,
     ].map(
       (lambdaName) =>
-        new NodejsFunction(this, lambdaName + "1", {
+        new NodejsFunction(this, lambdaName, {
           ...sharedLambdaProps,
-          functionName: lambdaName + "1",
+          functionName: lambdaName,
           entry: path.join(__dirname, "..", "lambda", `${lambdaName}.ts`),
-          role: dynamoDbAccessRole,
+          role: lambdaRole,
         })
     );
 
@@ -110,5 +126,46 @@ export class ProductsServiceStack extends cdk.Stack {
     productsList
       .addResource("{productId}")
       .addMethod("GET", new apiGateway.LambdaIntegration(getProductById));
+
+    const importQueue = new sqs.Queue(this, "ImportQueue", {
+      queueName: "import-queue",
+    });
+
+    const batchEventSource = new SqsEventSource(importQueue, {
+      batchSize: env.IMPORT_BATCH_SIZE,
+    });
+
+    catalogBatchProcess.addEventSource(batchEventSource);
+
+    const createProductsTopic = new sns.Topic(this, "ImportProductTopic", {
+      topicName: "import-product-topic",
+    });
+
+    createProductsTopic.grantPublish(catalogBatchProcess);
+
+    catalogBatchProcess.addEnvironment(
+      "IMPORT_PRODUCT_TOPIC_ARN",
+      createProductsTopic.topicArn
+    );
+
+    new sns.Subscription(this, "ImportProductTopicSubscription", {
+      topic: createProductsTopic,
+      protocol: sns.SubscriptionProtocol.EMAIL,
+      endpoint: env.EMAIL,
+    });
+
+    new sns.Subscription(this, "LowStockSubscription", {
+      topic: createProductsTopic,
+      protocol: sns.SubscriptionProtocol.EMAIL,
+      endpoint: env.LOW_STOCK_EMAIL,
+      filterPolicy: {
+        count: sns.SubscriptionFilter.numericFilter({ lessThan: 5 }),
+      },
+    });
+
+    new cdk.CfnOutput(this, "ImportQueueArnOutput", {
+      value: importQueue.queueArn,
+      exportName: "ImportQueueArn",
+    });
   }
 }

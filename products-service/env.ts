@@ -9,6 +9,12 @@ export const env = createEnv({
     PRODUCTS_AWS_REGION: z.string().min(1),
     DYNAMODB_PRODUCTS_TABLE: z.string().min(1),
     DYNAMODB_STOCKS_TABLE: z.string().min(1),
+    IMPORT_BATCH_SIZE: z
+      .string()
+      .transform((s) => parseInt(s, 10))
+      .pipe(z.number()),
+    EMAIL: z.string().email(),
+    LOW_STOCK_EMAIL: z.string().email(),
   },
   runtimeEnv: process.env,
 });
