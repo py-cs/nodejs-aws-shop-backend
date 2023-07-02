@@ -12,6 +12,7 @@ import { env } from "../env";
 import path = require("path");
 import * as apiGateway from "aws-cdk-lib/aws-apigateway";
 import { Folders } from "../utils/constants";
+import { PolicyDocument, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 
 enum Lambdas {
   importFileParser = "importFileParser",
@@ -46,6 +47,14 @@ export class ImportServiceStack extends cdk.Stack {
       this,
       "ImportQueue",
       importQueueArn
+    );
+
+    const authorizerLambdaArn = cdk.Fn.importValue("AuthorizerLambdaArn");
+
+    const authorizerLambda = lambda.Function.fromFunctionArn(
+      this,
+      "AuthorizerLambda",
+      authorizerLambdaArn
     );
 
     const bucket = new s3.Bucket(this, "ImportBucket", {
@@ -94,6 +103,9 @@ export class ImportServiceStack extends cdk.Stack {
           "lambda",
           `${Lambdas.importFileParser}.ts`
         ),
+        bundling: {
+          externalModules: ["aws-lambda"],
+        },
       }
     );
 
@@ -109,11 +121,56 @@ export class ImportServiceStack extends cdk.Stack {
       },
     });
 
+    const authRole = new Role(this, "authorizer-role", {
+      roleName: "authorizer-role",
+      assumedBy: new ServicePrincipal("apigateway.amazonaws.com"),
+      inlinePolicies: {
+        allowLambdaInvocation: PolicyDocument.fromJson({
+          Version: "2012-10-17",
+          Statement: [
+            {
+              Effect: "Allow",
+              Action: ["lambda:InvokeFunction", "lambda:InvokeAsync"],
+              Resource: authorizerLambdaArn,
+            },
+          ],
+        }),
+      },
+    });
+
+    const authorizer = new apiGateway.TokenAuthorizer(
+      this,
+      "ImportApiGatewayAuthorizer",
+      {
+        authorizerName: "ImportAuthorizer",
+        handler: authorizerLambda,
+        resultsCacheTtl: cdk.Duration.seconds(0),
+        assumeRole: authRole,
+      }
+    );
+
     api.root
       .addResource("import")
       .addMethod("GET", new apiGateway.LambdaIntegration(importProductsFile), {
         requestParameters: { "method.request.querystring.name": true },
+        authorizationType: apiGateway.AuthorizationType.CUSTOM,
+        authorizer,
       });
+
+    const responseHeaders = {
+      "Access-Control-Allow-Origin": "'*'",
+      "Access-Control-Allow-Headers": "'*'",
+      "Access-Control-Allow-Methods": "'GET'",
+    };
+
+    api.addGatewayResponse("GatewayResponseUNAUTHORIZED", {
+      type: apiGateway.ResponseType.UNAUTHORIZED,
+      responseHeaders,
+    });
+    api.addGatewayResponse("GatewayResponseACCESS_DENIED", {
+      type: apiGateway.ResponseType.ACCESS_DENIED,
+      responseHeaders,
+    });
 
     bucket.grantReadWrite(importProductsFile);
     bucket.grantReadWrite(importFileParser);
