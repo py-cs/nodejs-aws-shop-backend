@@ -1,16 +1,29 @@
-import * as cdk from 'aws-cdk-lib';
-import { Construct } from 'constructs';
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as cdk from "aws-cdk-lib";
+import * as lambda from "aws-cdk-lib/aws-lambda";
+
+import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
+import { Construct } from "constructs";
+import path = require("path");
+import { env } from "../env";
+
+const AUTHORIZER_LAMBDA = "basicAuthorizer";
+const { py_cs } = env;
 
 export class AuthorizationServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // The code that defines your stack goes here
+    const authorizerLambda = new NodejsFunction(this, AUTHORIZER_LAMBDA, {
+      entry: path.join(__dirname, "..", "lambda", `${AUTHORIZER_LAMBDA}.ts`),
+      runtime: lambda.Runtime.NODEJS_18_X,
+      environment: {
+        py_cs,
+      },
+    });
 
-    // example resource
-    // const queue = new sqs.Queue(this, 'AuthorizationServiceQueue', {
-    //   visibilityTimeout: cdk.Duration.seconds(300)
-    // });
+    new cdk.CfnOutput(this, "ImportQueueArnOutput", {
+      value: authorizerLambda.functionArn,
+      exportName: "AuthorizerLambdaArn",
+    });
   }
 }

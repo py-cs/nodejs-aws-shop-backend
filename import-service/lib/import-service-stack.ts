@@ -48,6 +48,14 @@ export class ImportServiceStack extends cdk.Stack {
       importQueueArn
     );
 
+    const authorizerLambdaArn = cdk.Fn.importValue("AuthorizerLambdaArn");
+
+    const authorizerLambda = lambda.Function.fromFunctionArn(
+      this,
+      "AuthorizerLambda",
+      authorizerLambdaArn
+    );
+
     const bucket = new s3.Bucket(this, "ImportBucket", {
       bucketName: BUCKET_NAME,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
@@ -113,6 +121,11 @@ export class ImportServiceStack extends cdk.Stack {
       .addResource("import")
       .addMethod("GET", new apiGateway.LambdaIntegration(importProductsFile), {
         requestParameters: { "method.request.querystring.name": true },
+        authorizationType: apiGateway.AuthorizationType.CUSTOM,
+        authorizer: {
+          authorizerId: authorizerLambda.functionName,
+          authorizationType: apiGateway.AuthorizationType.CUSTOM,
+        },
       });
 
     bucket.grantReadWrite(importProductsFile);
