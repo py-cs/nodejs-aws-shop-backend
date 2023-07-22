@@ -10,6 +10,8 @@ export const env = createEnv({
       .string()
       .transform((s) => parseInt(s, 10))
       .pipe(z.number()),
+    product: z.string().url(),
+    cart: z.string().url(),
   },
   runtimeEnv: process.env,
   // skipValidation: true,
