@@ -20,5 +20,5 @@ export const env = createEnv({
     cart: z.string().url(),
   },
   runtimeEnv: process.env,
-  // skipValidation: true,
+  skipValidation: true,
 });
