@@ -7,7 +7,7 @@ RUN npm ci --quiet
 
 COPY . .
 
-RUN npm run build
+RUN npm run build:es
 
 FROM alpine AS production
 
