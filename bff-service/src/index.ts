@@ -34,7 +34,7 @@ app.all('*', (request: Request, response: Response) => {
 
   const endpoint = `${serviceUrl}/${rest.join('/')}`;
 
-  if (endpoint === PRODUCTS_ENDPOINT && productsCache) {
+  if (endpoint === PRODUCTS_ENDPOINT && method === 'GET' && productsCache) {
     return response.status(200).send(productsCache);
   }
 
@@ -44,7 +44,7 @@ app.all('*', (request: Request, response: Response) => {
       return res.json();
     })
     .then((data) => {
-      if (endpoint === PRODUCTS_ENDPOINT) {
+      if (endpoint === PRODUCTS_ENDPOINT && method === 'GET') {
         productsCache = data;
         setTimeout(
           () => {
