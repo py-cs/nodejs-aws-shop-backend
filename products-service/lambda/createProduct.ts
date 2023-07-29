@@ -14,7 +14,7 @@ const docClient = DynamoDBDocumentClient.from(dynamo);
 export const createProduct = async (createProductDTO: unknown) => {
   const productWithStock = productSchema.parse(createProductDTO);
 
-  const { count, ...productData } = productWithStock;
+  const { stock: count, ...productData } = productWithStock;
   const id = randomUUID();
   const product = { ...productData, id };
   const stock = { product_id: id, count };
@@ -41,22 +41,15 @@ export const createProduct = async (createProductDTO: unknown) => {
 };
 
 export const handler = async (event: APIGatewayProxyEvent) => {
-  if (!event.body || !productSchema.safeParse(event.body).success)
-    return buildResponse(401, { message: "Invalid product" });
-
-  const createProductDTO = JSON.parse(event.body);
-
-  console.log(
-    "incoming request to create product with parameters: ",
-    JSON.stringify(createProductDTO)
-  );
+  if (!event.body) return buildResponse(400, { message: "Empty product data" });
 
   try {
-    const response = createProduct(createProductDTO);
+    const createProductDTO = JSON.parse(event.body);
+    const response = await createProduct(createProductDTO);
     return buildResponse(201, response);
   } catch (error: unknown) {
-    return buildResponse(500, {
-      message: error instanceof Error ? error.message : "Unexpected error",
+    return buildResponse(400, {
+      message: "Invalid product",
     });
   }
 };
